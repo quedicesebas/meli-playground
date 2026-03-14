@@ -44,7 +44,13 @@ public class Main {
 
         // 2. Fetch data from MeLi API
         String query = "Lente";
-        List<Item> items = client.searchItems(query);
+        List<Item> items;
+        try {
+            items = client.searchItems(query);
+        } catch (com.meli.challenge.exception.MeliApiException e) {
+            log.error("API Error: {}. Using fallback mock data.", e.getMessage());
+            items = ((ItemServiceImpl) service).getFallbackItems(query);
+        }
 
         // 3. Store and process data
         items.forEach(service::save);

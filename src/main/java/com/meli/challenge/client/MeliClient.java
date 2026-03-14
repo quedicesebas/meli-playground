@@ -1,6 +1,9 @@
 package com.meli.challenge.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.meli.challenge.config.MeliConfig;
+import com.meli.challenge.exception.MeliApiException;
+import com.meli.challenge.mapper.MeliMapper;
 import com.meli.challenge.model.Item;
 import com.meli.challenge.model.MeliSearchResponse;
 import org.slf4j.Logger;
@@ -13,107 +16,138 @@ import java.net.http.HttpResponse;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Client for interacting with MercadoLibre API.
+ */
 public class MeliClient {
     private static final Logger log = LoggerFactory.getLogger(MeliClient.class);
-    private static final String SEARCH_URL = "https://api.mercadolibre.com/sites/MCO/search?q=";
 
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
+    private final MeliMapper meliMapper;
     private final String accessToken;
-    private Long userId; // Field to store the authenticated user ID
+    private Long userId;
 
     public MeliClient(ObjectMapper objectMapper, String accessToken) {
-        this.httpClient = HttpClient.newHttpClient();
+        this.httpClient = HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_2)
+                .build();
         this.objectMapper = objectMapper;
+        this.meliMapper = MeliMapper.getInstance();
         this.accessToken = accessToken;
     }
 
+    /**
+     * Verifies the access token and retrieves the user ID.
+     * 
+     * @throws MeliApiException if the token check fails
+     */
     private void checkToken() {
-        if (accessToken == null || accessToken.isBlank()) return;
+        if (accessToken == null || accessToken.isBlank()) {
+            return;
+        }
+
         try {
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("https://api.mercadolibre.com/users/me"))
-                    .header("Authorization", "Bearer " + accessToken)
+                    .uri(URI.create(MeliConfig.USERS_ME_ENDPOINT))
+                    .header(MeliConfig.AUTH_HEADER, MeliConfig.BEARER_PREFIX + accessToken)
+                    .header("User-Agent", MeliConfig.USER_AGENT)
                     .GET()
                     .build();
+
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            log.info("Token Sanity Check - Status: {}", response.statusCode());
             
             if (response.statusCode() == 200) {
                 var node = objectMapper.readTree(response.body());
                 if (node.has("id")) {
                     this.userId = node.get("id").asLong();
-                    log.info("Authenticated as User ID: {}", userId);
+                    log.info("Authenticated in MeLi as User ID: {}", userId);
                 }
             } else {
-                log.error("Token invalid or expired. MeLi Response: {}", response.body());
+                log.error("MeLi Token Check Failed - Status: {} Body: {}", response.statusCode(), response.body());
+                throw new MeliApiException("Invalid or expired MeLi access token", response.statusCode());
             }
+        } catch (MeliApiException e) {
+            throw e;
         } catch (Exception e) {
-            log.warn("Failed to perform token sanity check: {}", e.getMessage());
+            throw new MeliApiException("Unexpected error during token check", 500, e);
         }
     }
 
+    /**
+     * Searches for items based on a query.
+     * 
+     * @param query the search term
+     * @return list of items found
+     * @throws MeliApiException if the search fails
+     */
     public List<Item> searchItems(String query) {
+        if (query == null || query.isBlank()) {
+            throw new IllegalArgumentException("Search query cannot be null or empty");
+        }
+
         log.info("Searching items on MeLi for: {}", query);
         checkToken();
 
+        // If authenticated, we prioritize searching own items to avoid 403 on global search
         if (accessToken != null && userId != null) {
             return searchOwnItems(query);
         }
 
-        try {
-            String url = SEARCH_URL + query.replace(" ", "%20");
-            var requestBuilder = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-                    .header("Accept", "application/json")
-                    .header("Accept-Language", "es-CO,es;q=0.9,en;q=0.8")
-                    .GET();
+        return performPublicSearch(query);
+    }
 
-            HttpRequest request = requestBuilder.build();
+    private List<Item> performPublicSearch(String query) {
+        try {
+            String url = MeliConfig.SEARCH_ENDPOINT + "?q=" + query.replace(" ", "%20");
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .header("User-Agent", MeliConfig.USER_AGENT)
+                    .header("Accept", "application/json")
+                    .GET()
+                    .build();
+
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() != 200) {
-                log.error("MeLi Public Search Error - Status: {}", response.statusCode());
-                log.error("MeLi Public Search Error - Body: {}", response.body());
-                log.info("Falling back to mock data for demonstration.");
-                return getMockItems(query);
+                throw new MeliApiException("MeLi Public Search returned non-200 status", response.statusCode());
             }
 
             MeliSearchResponse searchResponse = objectMapper.readValue(response.body(), MeliSearchResponse.class);
             return searchResponse.getResults().stream()
-                    .map(MeliSearchResponse.SearchResultItem::toDomain)
+                    .map(meliMapper::toDomain)
                     .collect(Collectors.toList());
 
+        } catch (MeliApiException e) {
+            throw e;
         } catch (Exception e) {
-            log.error("Error calling MeLi Public Search API: {}. Returning mock data.", e.getMessage());
-            return getMockItems(query);
+            throw new MeliApiException("Error during MeLi public search: " + e.getMessage(), 500, e);
         }
     }
 
     private List<Item> searchOwnItems(String query) {
-        log.info("Attempting to fetch your own items for query: {}", query);
+        log.info("Attempting private search for own items (User ID: {})", userId);
         try {
-            // Step 1: Get Item IDs
-            String listUrl = "https://api.mercadolibre.com/users/" + userId + "/items/search?q=" + query.replace(" ", "%20");
+            // Step 1: List Own Item IDs
+            String listUrl = String.format(MeliConfig.USER_ITEMS_SEARCH_TEMPLATE, userId) + "?q=" + query.replace(" ", "%20");
             HttpRequest listRequest = HttpRequest.newBuilder()
                     .uri(URI.create(listUrl))
-                    .header("Authorization", "Bearer " + accessToken)
+                    .header(MeliConfig.AUTH_HEADER, MeliConfig.BEARER_PREFIX + accessToken)
+                    .header("User-Agent", MeliConfig.USER_AGENT)
                     .GET()
                     .build();
 
             HttpResponse<String> listResponse = httpClient.send(listRequest, HttpResponse.BodyHandlers.ofString());
             
             if (listResponse.statusCode() != 200) {
-                log.error("Failed to list own items. Status: {}", listResponse.statusCode());
-                log.error("Response Body: {}", listResponse.body());
-                return getMockItems(query);
+                throw new MeliApiException("Failed to list user items", listResponse.statusCode());
             }
 
             var node = objectMapper.readTree(listResponse.body());
             var resultsNode = node.get("results");
+            
             if (resultsNode == null || resultsNode.isEmpty()) {
-                log.warn("No items found for your user with query: {}", query);
+                log.info("No items found for current user matching query: {}", query);
                 return List.of();
             }
 
@@ -123,20 +157,20 @@ public class MeliClient {
                 ids += idNode.asText();
             }
 
-            // Step 2: Get Item Details
-            log.info("Fetching details for IDs: {}", ids);
-            String detailUrl = "https://api.mercadolibre.com/items?ids=" + ids;
+            // Step 2: Fetch Details for those IDs
+            log.info("Fetching details for own items: {}", ids);
+            String detailUrl = MeliConfig.ITEMS_DETAILS_ENDPOINT + "?ids=" + ids;
             HttpRequest detailRequest = HttpRequest.newBuilder()
                     .uri(URI.create(detailUrl))
-                    .header("Authorization", "Bearer " + accessToken)
+                    .header(MeliConfig.AUTH_HEADER, MeliConfig.BEARER_PREFIX + accessToken)
+                    .header("User-Agent", MeliConfig.USER_AGENT)
                     .GET()
                     .build();
 
             HttpResponse<String> detailResponse = httpClient.send(detailRequest, HttpResponse.BodyHandlers.ofString());
             
             if (detailResponse.statusCode() != 200) {
-                log.error("Failed to fetch item details. Status: {}", detailResponse.statusCode());
-                return getMockItems(query);
+                throw new MeliApiException("Failed to fetch item details", detailResponse.statusCode());
             }
 
             List<MeliSearchResponse.ItemDetailResponse> details = objectMapper.readValue(
@@ -146,21 +180,13 @@ public class MeliClient {
 
             return details.stream()
                     .filter(d -> d.getCode() == 200 && d.getBody() != null)
-                    .map(d -> d.getBody().toDomain())
+                    .map(d -> meliMapper.toDomain(d.getBody()))
                     .collect(Collectors.toList());
 
+        } catch (MeliApiException e) {
+            throw e;
         } catch (Exception e) {
-            log.error("Error during two-step fetch: {}", e.getMessage());
-            return getMockItems(query);
+            throw new MeliApiException("Error during MeLi private search: " + e.getMessage(), 500, e);
         }
-    }
-
-    private List<Item> getMockItems(String query) {
-        return List.of(
-            Item.builder().id("MLA1").title(query + " - Gen 4").category("Electronics").price(45000.0).availableQuantity(5).build(),
-            Item.builder().id("MLA2").title(query + " - Ultra HD").category("Electronics").price(62000.0).availableQuantity(2).build(),
-            Item.builder().id("MLA3").title(query + " - Lite Edition").category("Electronics").price(28000.0).availableQuantity(10).build(),
-            Item.builder().id("MLA4").title(query + " - Bundle Pack").category("Electronics").price(85000.0).availableQuantity(1).build()
-        );
     }
 }

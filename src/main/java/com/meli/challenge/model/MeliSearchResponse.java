@@ -22,16 +22,6 @@ public class MeliSearchResponse {
         private String categoryId;
         @JsonProperty("available_quantity")
         private int availableQuantity;
-
-        public Item toDomain() {
-            return Item.builder()
-                    .id(id)
-                    .title(title)
-                    .category(categoryId)
-                    .price(price)
-                    .availableQuantity(availableQuantity)
-                    .build();
-        }
     }
 
     @Data
