@@ -1,0 +1,41 @@
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.restoreBackup
+release.properties
+dependency-reduced-pom.xml
+build.log
+.incremental
+.polyglot.build.properties
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+# Eclipse
+.settings/
+.project
+.classpath
+.metadata/
+bin/
+
+# VS Code
+.vscode/
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# Logs and temporary files
+*.log
+*.tmp
+user_report*.txt
+
+# Environment variables (Safety)
+.env
+.env.local

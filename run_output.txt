@@ -1,0 +1,32 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] -----------------< com.meli.challenge:meli-challenge >------------------
+[INFO] Building MercadoLibre Challenge 1.0.0-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.4.0:resources (default-resources) @ meli-challenge ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ meli-challenge ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- exec:3.6.3:java (default-cli) @ meli-challenge ---
+20:18:21.250 [com.meli.challenge.Main.main()] INFO  com.meli.challenge.Main - MercadoLibre Challenge - Starting application
+20:18:21.465 [com.meli.challenge.Main.main()] INFO  c.meli.challenge.client.MeliClient - Searching items on MeLi for: chromecast
+20:18:21.712 [com.meli.challenge.Main.main()] ERROR c.meli.challenge.client.MeliClient - Failed to fetch data from MeLi. Status code: 403
+
+============================================================
+ MERCADOLIBRE CHALLENGE - REPORT 
+============================================================
+Search Query:     chromecast
+Items Found:      0
+============================================================
+
+20:18:21.713 [com.meli.challenge.Main.main()] INFO  com.meli.challenge.Main - Done.
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  1.112 s
+[INFO] Finished at: 2026-03-13T20:18:21-05:00
+[INFO] ------------------------------------------------------------------------

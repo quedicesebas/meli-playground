@@ -1,0 +1,45 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] -----------------< com.meli.challenge:meli-challenge >------------------
+[INFO] Building MercadoLibre Challenge 1.0.0-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.4.0:resources (default-resources) @ meli-challenge ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ meli-challenge ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- exec:3.6.3:java (default-cli) @ meli-challenge ---
+20:18:55.671 [com.meli.challenge.Main.main()] INFO  com.meli.challenge.Main - MercadoLibre Challenge - Starting application
+20:18:55.913 [com.meli.challenge.Main.main()] INFO  c.meli.challenge.client.MeliClient - Searching items on MeLi for: chromecast
+20:18:56.166 [com.meli.challenge.Main.main()] ERROR c.meli.challenge.client.MeliClient - Failed to fetch data from MeLi. Status code: 403. Falling back to mock data for demonstration.
+20:18:56.168 [com.meli.challenge.Main.main()] DEBUG c.m.c.service.ItemServiceImpl - Saving item: Item(id=MLA1, title=chromecast - Gen 4, category=Electronics, price=45000.0, availableQuantity=5)
+20:18:56.171 [com.meli.challenge.Main.main()] DEBUG c.m.c.service.ItemServiceImpl - Saving item: Item(id=MLA2, title=chromecast - Ultra HD, category=Electronics, price=62000.0, availableQuantity=2)
+20:18:56.171 [com.meli.challenge.Main.main()] DEBUG c.m.c.service.ItemServiceImpl - Saving item: Item(id=MLA3, title=chromecast - Lite Edition, category=Electronics, price=28000.0, availableQuantity=10)
+20:18:56.171 [com.meli.challenge.Main.main()] DEBUG c.m.c.service.ItemServiceImpl - Saving item: Item(id=MLA4, title=chromecast - Bundle Pack, category=Electronics, price=85000.0, availableQuantity=1)
+
+============================================================
+ MERCADOLIBRE CHALLENGE - REPORT 
+============================================================
+Search Query:     chromecast
+Items Found:      4
+20:18:56.171 [com.meli.challenge.Main.main()] DEBUG c.m.c.service.ItemServiceImpl - Calculating average price for category: Electronics
+Average Price (Cat: Electronics): $55000.00
+------------------------------------------------------------
+ID              | Title                          | Price     
+------------------------------------------------------------
+MLA1            | chromecast - Gen 4             | $45000.00
+MLA2            | chromecast - Ultra HD          | $62000.00
+MLA3            | chromecast - Lite Edition      | $28000.00
+MLA4            | chromecast - Bundle Pack       | $85000.00
+============================================================
+
+20:18:56.175 [com.meli.challenge.Main.main()] INFO  com.meli.challenge.Main - Done.
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  1.152 s
+[INFO] Finished at: 2026-03-13T20:18:56-05:00
+[INFO] ------------------------------------------------------------------------
