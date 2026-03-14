@@ -28,12 +28,12 @@ public class MeliClient {
     private final String accessToken;
     private Long userId;
 
-    public MeliClient(ObjectMapper objectMapper, String accessToken) {
+    public MeliClient(ObjectMapper objectMapper, MeliMapper meliMapper, String accessToken) {
         this.httpClient = HttpClient.newBuilder()
                 .version(HttpClient.Version.HTTP_2)
                 .build();
         this.objectMapper = objectMapper;
-        this.meliMapper = MeliMapper.getInstance();
+        this.meliMapper = meliMapper;
         this.accessToken = accessToken;
     }
 

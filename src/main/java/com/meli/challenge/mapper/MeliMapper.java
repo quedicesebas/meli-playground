@@ -27,11 +27,7 @@ public class MeliMapper {
                 .build();
     }
 
-    private MeliMapper() {
-        // Factory or singleton pattern could be used, keeping it simple for now
-    }
-    
-    public static MeliMapper getInstance() {
-        return new MeliMapper();
+    public MeliMapper() {
+        // Public constructor for Dependency Injection
     }
 }

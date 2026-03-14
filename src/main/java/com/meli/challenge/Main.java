@@ -3,6 +3,7 @@ package com.meli.challenge;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.meli.challenge.client.MeliClient;
+import com.meli.challenge.mapper.MeliMapper;
 import com.meli.challenge.model.Item;
 import com.meli.challenge.repository.InMemoryItemRepository;
 import com.meli.challenge.repository.ItemRepository;
@@ -38,7 +39,8 @@ public class Main {
             accessToken = dotenv.get("MELI_ACCESS_TOKEN");
         }
         
-        MeliClient client = new MeliClient(mapper, accessToken);
+        MeliMapper meliMapper = new MeliMapper();
+        MeliClient client = new MeliClient(mapper, meliMapper, accessToken);
         ItemRepository repository = new InMemoryItemRepository();
         ItemService service = new ItemServiceImpl(repository);
 
